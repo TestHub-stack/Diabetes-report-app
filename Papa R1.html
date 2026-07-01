@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Health Log</title>
+    <!-- Library for generating the classy PDF report -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.min.js"></script>
+    <style>
+        /* --- DESIGN SYSTEM & VARIABLES --- */
+        :root {
+            --bg-color: #F9F8F6;
+            --card-bg: #FFFFFF;
+            --text-primary: #2C2C2C;
+            --text-secondary: #6B6B6B;
+            --accent: #7A8B80;
+            --accent-hover: #627367;
+            --border: #EAE8E3;
+            --shadow: 0 4px 12px rgba(0,0,0,0.04);
+            --radius: 8px;
+        }
+
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1, h2 {
+            font-family: "Georgia", serif;
+            font-weight: normal;
+            letter-spacing: -0.5px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+        header h1 { font-size: 2rem; margin-bottom: 8px; }
+        header p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* --- NAVIGATION TABS --- */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 10px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* --- CARDS & FORMS --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: border 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        textarea { resize: vertical; min-height: 80px; }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: var(--accent-hover); }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            width: auto;
+        }
+        .btn-secondary:hover { background: var(--bg-color); color: var(--text-primary); }
+
+        /* --- NEATLY ORGANIZED HISTORY LIST --- */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .date-group { margin-bottom: 30px; }
+        .date-header {
+            font-family: "Georgia", serif;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .entry-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px dashed var(--border);
+            gap: 15px;
+        }
+        .entry-item:last-child { border-bottom: none; }
+        
+        .entry-time {
+            width: 75px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .entry-details { flex: 1; }
+        .entry-context-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            background: var(--bg-color);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .entry-notes-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 6px;
+        }
+        .entry-level {
+            text-align: right;
+            min-width: 80px;
+        }
+        .entry-level-val {
+            font-family: "Georgia", serif;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            display: block;
+            line-height: 1;
+        }
+        .entry-level-unit {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: block;
+            margin-top: 4px;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+        .delete-btn:hover { color: #e74c3c; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        /* --- CLASSY PDF REPORT STYLES --- */
+        #pdf-render-area {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 800px;
+            background: #ffffff;
+            color: #2C2C2C;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 60px;
+        }
+        .pdf-header {
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .pdf-header h1 {
+            font-family: 'Georgia', serif;
+            font-size: 36px;
+            margin: 0;
+            color: #2C2C2C;
+            letter-spacing: 1px;
+        }
+        .pdf-header p {
+            font-size: 14px;
+            color: #6B6B6B;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .pdf-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #6B6B6B;
+        }
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .pdf-table th {
+            background: #F9F8F6;
+            color: #7A8B80;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid #EAE8E3;
+        }
+        .pdf-table td {
+            padding: 14px 10px;
+            border-bottom: 1px solid #EAE8E3;
+            vertical-align: top;
+        }
+        .pdf-table tr { page-break-inside: avoid; }
+        .pdf-table .level-cell {
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            color: #2C2C2C;
+            font-weight: bold;
+        }
+        .pdf-footer {
+            margin-top: 50px;
+            text-align: center;
+            font-style: italic;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 600px) {
+            body { padding: 15px; }
+            .card { padding: 20px; }
+            header h1 { font-size: 1.6rem; }
+            .entry-item { gap: 10px; }
+            .entry-time { width: 60px; font-size: 0.8rem; }
+            .entry-level-val { font-size: 1.2rem; }
+        }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>My Health Log</h1>
+        <p>A simple, private space to track your daily wellness.</p>
+    </header>
+
+    <!-- Navigation -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showView('log')">Log Entry</button>
+        <button class="tab-btn" onclick="showView('history')">View History</button>
+    </div>
+
+    <!-- LOG VIEW -->
+    <main id="log-view">
+        <div class="card">
+            <form id="log-form">
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="time">Time</label>
+                    <input type="time" id="time" required>
+                </div>
+                <div class="form-group">
+                    <label for="context">Meal & Timing</label>
+                    <select id="context" required>
+                        <option value="" disabled selected>Select context...</option>
+                        <optgroup label="Breakfast">
+                            <option value="Breakfast (Before)">Breakfast (Before)</option>
+                            <option value="Breakfast (After)">Breakfast (After)</option>
+                        </optgroup>
+                        <optgroup label="Lunch">
+                            <option value="Lunch (Before)">Lunch (Before)</option>
+                            <option value="Lunch (After)">Lunch (After)</option>
+                        </optgroup>
+                        <optgroup label="Dinner">
+                            <option value="Dinner (Before)">Dinner (Before)</option>
+                            <option value="Dinner (After)">Dinner (After)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Blood Sugar Level</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="level" step="0.1" placeholder="e.g., 110" required style="flex: 2;">
+                        <select id="unit" style="flex: 1;">
+                            <option value="mg/dL">mg/dL</option>
+                            <option value="mmol/L">mmol/L</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes (Optional)</label>
+                    <textarea id="notes" placeholder="How are you feeling? What did you eat?"></textarea>
+                </div>
+                <button type="submit" class="btn">Save Entry</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- HISTORY VIEW -->
+    <main id="history-view" class="hidden">
+        <div class="card">
+            <div class="history-header">
+                <h2>Recent Entries</h2>
+                <button class="btn-secondary" onclick="exportData()">Export PDF Report</button>
+            </div>
+            <div id="history-list">
+                <!-- Entries will be injected here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- HIDDEN PDF TEMPLATE -->
+    <div id="pdf-render-area">
+        <div class="pdf-header">
+            <h1>Mohammed Ayub</h1>
+            <p>Personal Health & Blood Sugar Log</p>
+        </div>
+        <div class="pdf-meta">
+            <span>Report Generated: <strong id="pdf-date"></strong></span>
+            <span>Total Entries: <strong id="pdf-count"></strong></span>
+        </div>
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Context</th>
+                    <th>Level</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-tbody">
+                <!-- Rows injected here -->
+            </tbody>
+        </table>
+        <div class="pdf-footer">
+            <p>Keep tracking, keep thriving.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDateTime();
+            renderHistory();
+        });
+
+        function setDefaultDateTime() {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().slice(0, 5);
+            document.getElementById('date').value = dateStr;
+            document.getElementById('time').value = timeStr;
+        }
+
+        // --- VIEW SWITCHING ---
+        function showView(view) {
+            document.getElementById('log-view').classList.toggle('hidden', view !== 'log');
+            document.getElementById('history-view').classList.toggle('hidden', view !== 'history');
+            
+            document.querySelectorAll('.tab-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', (view === 'log' && index === 0) || (view === 'history' && index === 1));
+            });
+
+            if (view === 'history') renderHistory();
+        }
+
+        // --- DATA MANAGEMENT ---
+        function getEntries() {
+            return JSON.parse(localStorage.getItem('healthLogEntries') || '[]');
+        }
+
+        function saveEntry(entry) {
+            const entries = getEntries();
+            entries.unshift(entry);
+            localStorage.setItem('healthLogEntries', JSON.stringify(entries));
+        }
+
+        function deleteEntry(timestamp) {
+            if(!confirm('Remove this entry?')) return;
+            let entries = getEntries();
+            entries = entries.filter(e => e.timestamp !== timestamp);
+            localStorage.setItem('healthLogEntries', JSON.stringify(entries));
+            renderHistory();
+        }
+
+        // --- FORM HANDLING ---
+        document.getElementById('log-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const entry = {
+                timestamp: Date.now(),
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value,
+                context: document.getElementById('context').value,
+                level: document.getElementById('level').value,
+                unit: document.getElementById('unit').value,
+                notes: document.getElementById('notes').value
+            };
+
+            saveEntry(entry);
+            this.reset();
+            setDefaultDateTime();
+            showView('history');
+        });
+
+        // --- RENDERING HISTORY (NEATLY ORGANIZED) ---
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const entries = getEntries();
+
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty-state"><p>No entries yet. Start by logging your first reading!</p></div>';
+                return;
+            }
+
+            // Group entries by date
+            const grouped = {};
+            entries.forEach(entry => {
+                if (!grouped[entry.date]) grouped[entry.date] = [];
+                grouped[entry.date].push(entry);
+            });
+
+            let html = '';
+            for (const date in grouped) {
+                const dateObj = new Date(date + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                });
+                
+                html += `<div class="date-group">`;
+                html += `<div class="date-header">${formattedDate}</div>`;
+                
+                grouped[date].forEach(entry => {
+                    const formattedTime = new Date('1970-01-01T' + entry.time).toLocaleTimeString('en-US', { 
+                        hour: 'numeric', minute: '2-digit' 
+                    });
+
+                    html += `
+                        <div class="entry-item">
+                            <div class="entry-time">${formattedTime}</div>
+                            <div class="entry-details">
+                                <div class="entry-context-badge">${entry.context}</div>
+                                ${entry.notes ? `<div class="entry-notes-text">"${entry.notes}"</div>` : ''}
+                            </div>
+                            <div class="entry-level">
+                                <span class="entry-level-val">${entry.level}</span>
+                                <span class="entry-level-unit">${entry.unit}</span>
+                            </div>
+                            <button class="delete-btn" onclick="deleteEntry(${entry.timestamp})" title="Remove entry">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            list.innerHTML = html;
+        }
+
+        // --- EXPORT CLASSY PDF ---
+        function exportData() {
+            const entries = getEntries();
+            if (entries.length === 0) return alert('No data to export.');
+
+            // Populate PDF template
+            document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', month: 'long', day: 'numeric' 
+            });
+            document.getElementById('pdf-count').textContent = entries.length;
+
+            const tbody = document.getElementById('pdf-tbody');
+            tbody.innerHTML = entries.map(e => {
+                const formattedDate = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const formattedTime = new Date('1970-01-01T' + e.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                return `
+                    <tr>
+                        <td>${formattedDate}</td>
+                        <td>${formattedTime}</td>
+                        <td>${e.context}</td>
+                        <td class="level-cell">${e.level} ${e.unit}</td>
+                        <td>${e.notes || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const element = document.getElementById('pdf-render-area');
+            
+            const opt = {
+                margin:       0,
+                filename:     `Mohammed_Ayub_Health_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            // Generate and download PDF
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
