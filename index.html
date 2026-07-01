@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Health Log</title>
-    <!-- Library for generating the classy PDF report -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.min.js"></script>
     <style>
         /* --- DESIGN SYSTEM & VARIABLES --- */
         :root {
@@ -18,6 +16,7 @@
             --border: #EAE8E3;
             --shadow: 0 4px 12px rgba(0,0,0,0.04);
             --radius: 8px;
+            --danger: #d9534f;
         }
 
         /* --- RESET & BASE --- */
@@ -43,9 +42,34 @@
             text-align: center;
             margin-bottom: 40px;
             padding-top: 20px;
+            position: relative;
         }
         header h1 { font-size: 2rem; margin-bottom: 8px; }
         header p { color: var(--text-secondary); font-size: 0.95rem; }
+        .greeting {
+            margin-top: 15px;
+            font-family: "Georgia", serif;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+        
+        /* Settings Button */
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings-btn:hover { background: var(--border); }
+        .settings-btn svg { width: 20px; height: 20px; color: var(--text-secondary); }
 
         /* --- NAVIGATION TABS --- */
         .tabs {
@@ -88,7 +112,7 @@
             margin-bottom: 6px;
             font-weight: 500;
         }
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--border);
@@ -98,11 +122,10 @@
             color: var(--text-primary);
             transition: border 0.2s;
         }
-        input:focus, select:focus, textarea:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--accent);
         }
-        textarea { resize: vertical; min-height: 80px; }
 
         .btn {
             display: inline-block;
@@ -118,23 +141,7 @@
         }
         .btn:hover { background-color: var(--accent-hover); }
 
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-            font-size: 0.85rem;
-            padding: 8px 16px;
-            width: auto;
-        }
-        .btn-secondary:hover { background: var(--bg-color); color: var(--text-primary); }
-
         /* --- NEATLY ORGANIZED HISTORY LIST --- */
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
         .date-group { margin-bottom: 30px; }
         .date-header {
             font-family: "Georgia", serif;
@@ -171,12 +178,6 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .entry-notes-text {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            margin-top: 6px;
-        }
         .entry-level {
             text-align: right;
             min-width: 80px;
@@ -202,7 +203,7 @@
             padding: 5px;
             transition: color 0.2s;
         }
-        .delete-btn:hover { color: #e74c3c; }
+        .delete-btn:hover { color: var(--danger); }
 
         .empty-state {
             text-align: center;
@@ -210,78 +211,101 @@
             color: var(--text-secondary);
         }
 
-        /* --- CLASSY PDF REPORT STYLES --- */
-        #pdf-render-area {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 800px;
-            background: #ffffff;
-            color: #2C2C2C;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            padding: 60px;
-        }
-        .pdf-header {
-            text-align: center;
-            border-bottom: 2px solid var(--accent);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .pdf-header h1 {
-            font-family: 'Georgia', serif;
-            font-size: 36px;
-            margin: 0;
-            color: #2C2C2C;
-            letter-spacing: 1px;
-        }
-        .pdf-header p {
-            font-size: 14px;
-            color: #6B6B6B;
-            margin-top: 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .pdf-meta {
+        /* --- CUSTOM THEME TOAST NOTIFICATION --- */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            padding: 16px 24px;
+            border-radius: 50px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            z-index: 1001;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            font-size: 14px;
-            color: #6B6B6B;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+            pointer-events: none;
         }
-        .pdf-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .pdf-table th {
-            background: #F9F8F6;
-            color: #7A8B80;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 1px;
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 2px solid #EAE8E3;
-        }
-        .pdf-table td {
-            padding: 14px 10px;
-            border-bottom: 1px solid #EAE8E3;
-            vertical-align: top;
-        }
-        .pdf-table tr { page-break-inside: avoid; }
-        .pdf-table .level-cell {
-            font-family: 'Georgia', serif;
-            font-size: 16px;
-            color: #2C2C2C;
+        .toast.active { transform: translateX(-50%) translateY(0); }
+        .toast-icon {
+            width: 22px; height: 22px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
             font-weight: bold;
         }
-        .pdf-footer {
-            margin-top: 50px;
-            text-align: center;
-            font-style: italic;
-            color: #999;
-            font-size: 12px;
+
+        /* --- CUSTOM THEME MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 44, 44, 0.3);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        .modal-title {
+            font-family: "Georgia", serif;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .modal-msg {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .modal-actions { 
+            display: flex; 
+            gap: 12px; 
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+        .btn-modal {
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            width: 100%;
+            max-width: 280px;
+        }
+        .btn-save { background: var(--accent); color: white; }
+        .btn-save:hover { background: var(--accent-hover); }
+        .btn-cancel { background: var(--bg-color); color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-cancel:hover { background: #eee; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #c9302c; }
 
         /* --- RESPONSIVE --- */
         @media (max-width: 600px) {
@@ -291,6 +315,7 @@
             .entry-item { gap: 10px; }
             .entry-time { width: 60px; font-size: 0.8rem; }
             .entry-level-val { font-size: 1.2rem; }
+            .settings-btn { top: 10px; right: 10px; }
         }
 
         /* --- UTILITIES --- */
@@ -300,8 +325,15 @@
 <body>
 
     <header>
+        <button class="settings-btn" onclick="openSettingsModal()" title="Update Your Name">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
         <h1>My Health Log</h1>
         <p>A simple, private space to track your daily wellness.</p>
+        <div class="greeting" id="greeting-text">Hello</div>
     </header>
 
     <!-- Navigation -->
@@ -350,10 +382,6 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="notes">Notes (Optional)</label>
-                    <textarea id="notes" placeholder="How are you feeling? What did you eat?"></textarea>
-                </div>
                 <button type="submit" class="btn">Save Entry</button>
             </form>
         </div>
@@ -362,51 +390,104 @@
     <!-- HISTORY VIEW -->
     <main id="history-view" class="hidden">
         <div class="card">
-            <div class="history-header">
-                <h2>Recent Entries</h2>
-                <button class="btn-secondary" onclick="exportData()">Export PDF Report</button>
-            </div>
+            <h2 style="margin-bottom: 25px;">Recent Entries</h2>
             <div id="history-list">
                 <!-- Entries will be injected here -->
             </div>
         </div>
     </main>
 
-    <!-- HIDDEN PDF TEMPLATE -->
-    <div id="pdf-render-area">
-        <div class="pdf-header">
-            <h1>Mohammed Ayub</h1>
-            <p>Personal Health & Blood Sugar Log</p>
+    <!-- CUSTOM TOAST NOTIFICATION -->
+    <div id="toast" class="toast">
+        <div id="toast-icon" class="toast-icon">✓</div>
+        <span id="toast-msg">Success</span>
+    </div>
+
+    <!-- SETTINGS MODAL (UPDATE NAME) -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Update Your Name</div>
+            <div class="modal-msg">Change how you'd like to be addressed in your reports.</div>
+            <input type="text" id="settings-name-input" placeholder="Enter your name" style="margin-bottom: 20px;">
+            <div class="modal-actions">
+                <button class="btn-modal btn-save" onclick="saveNameFromSettings()">Save Changes</button>
+                <button class="btn-modal btn-cancel" onclick="closeSettingsModal()">Cancel</button>
+            </div>
         </div>
-        <div class="pdf-meta">
-            <span>Report Generated: <strong id="pdf-date"></strong></span>
-            <span>Total Entries: <strong id="pdf-count"></strong></span>
+    </div>
+
+    <!-- WELCOME MODAL (FIRST TIME) -->
+    <div id="welcome-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Welcome to My Health Log</div>
+            <div class="modal-msg">To personalize your experience, please enter your name.</div>
+            <input type="text" id="welcome-name-input" placeholder="Enter your name" style="margin-bottom: 20px;">
+            <div class="modal-actions">
+                <button class="btn-modal btn-save" onclick="saveNameFromWelcome()">Continue</button>
+            </div>
         </div>
-        <table class="pdf-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Context</th>
-                    <th>Level</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody id="pdf-tbody">
-                <!-- Rows injected here -->
-            </tbody>
-        </table>
-        <div class="pdf-footer">
-            <p>Keep tracking, keep thriving.</p>
+    </div>
+
+    <!-- CUSTOM DELETE CONFIRMATION MODAL -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Remove Entry?</div>
+            <div class="modal-msg">This action cannot be undone. This log will be permanently removed from your history.</div>
+            <div class="modal-actions">
+                <button class="btn-modal btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-modal btn-danger" onclick="confirmDelete()">Remove</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- INITIALIZATION ---
+        // --- INITIALIZATION & USER NAME ---
+        let userName = localStorage.getItem('userName');
+        
         document.addEventListener('DOMContentLoaded', () => {
+            updateGreeting();
+            if (!userName) {
+                document.getElementById('welcome-modal').classList.add('active');
+            }
             setDefaultDateTime();
             renderHistory();
         });
+
+        function updateGreeting() {
+            const greetingEl = document.getElementById('greeting-text');
+            greetingEl.textContent = userName ? `Hello, ${userName}` : 'Hello';
+        }
+
+        // --- SETTINGS MODAL FUNCTIONS ---
+        function openSettingsModal() {
+            document.getElementById('settings-name-input').value = userName || '';
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function saveNameFromSettings() {
+            const name = document.getElementById('settings-name-input').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                userName = name;
+                updateGreeting();
+                showToast('Name updated successfully!');
+                closeSettingsModal();
+            }
+        }
+
+        function saveNameFromWelcome() {
+            const name = document.getElementById('welcome-name-input').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                userName = name;
+                updateGreeting();
+                document.getElementById('welcome-modal').classList.remove('active');
+            }
+        }
 
         function setDefaultDateTime() {
             const now = new Date();
@@ -439,12 +520,47 @@
             localStorage.setItem('healthLogEntries', JSON.stringify(entries));
         }
 
-        function deleteEntry(timestamp) {
-            if(!confirm('Remove this entry?')) return;
-            let entries = getEntries();
-            entries = entries.filter(e => e.timestamp !== timestamp);
-            localStorage.setItem('healthLogEntries', JSON.stringify(entries));
-            renderHistory();
+        // --- CUSTOM TOAST & MODAL LOGIC ---
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            toastMsg.textContent = message;
+            
+            if (isError) {
+                toastIcon.style.background = 'var(--danger)';
+                toastIcon.innerHTML = '!';
+            } else {
+                toastIcon.style.background = 'var(--accent)';
+                toastIcon.innerHTML = '✓';
+            }
+
+            toast.classList.add('active');
+            setTimeout(() => { toast.classList.remove('active'); }, 3000);
+        }
+
+        let pendingDeleteTimestamp = null;
+
+        function showDeleteModal(timestamp) {
+            pendingDeleteTimestamp = timestamp;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            pendingDeleteTimestamp = null;
+        }
+
+        function confirmDelete() {
+            if (pendingDeleteTimestamp !== null) {
+                let entries = getEntries();
+                entries = entries.filter(e => e.timestamp !== pendingDeleteTimestamp);
+                localStorage.setItem('healthLogEntries', JSON.stringify(entries));
+                renderHistory();
+                showToast('Entry removed successfully.');
+            }
+            closeDeleteModal();
         }
 
         // --- FORM HANDLING ---
@@ -457,17 +573,17 @@
                 time: document.getElementById('time').value,
                 context: document.getElementById('context').value,
                 level: document.getElementById('level').value,
-                unit: document.getElementById('unit').value,
-                notes: document.getElementById('notes').value
+                unit: document.getElementById('unit').value
             };
 
             saveEntry(entry);
             this.reset();
             setDefaultDateTime();
+            showToast('Entry saved successfully!');
             showView('history');
         });
 
-        // --- RENDERING HISTORY (NEATLY ORGANIZED) ---
+        // --- RENDERING HISTORY ---
         function renderHistory() {
             const list = document.getElementById('history-list');
             const entries = getEntries();
@@ -477,7 +593,6 @@
                 return;
             }
 
-            // Group entries by date
             const grouped = {};
             entries.forEach(entry => {
                 if (!grouped[entry.date]) grouped[entry.date] = [];
@@ -504,13 +619,12 @@
                             <div class="entry-time">${formattedTime}</div>
                             <div class="entry-details">
                                 <div class="entry-context-badge">${entry.context}</div>
-                                ${entry.notes ? `<div class="entry-notes-text">"${entry.notes}"</div>` : ''}
                             </div>
                             <div class="entry-level">
                                 <span class="entry-level-val">${entry.level}</span>
                                 <span class="entry-level-unit">${entry.unit}</span>
                             </div>
-                            <button class="delete-btn" onclick="deleteEntry(${entry.timestamp})" title="Remove entry">
+                            <button class="delete-btn" onclick="showDeleteModal(${entry.timestamp})" title="Remove entry">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
@@ -520,46 +634,6 @@
             }
 
             list.innerHTML = html;
-        }
-
-        // --- EXPORT CLASSY PDF ---
-        function exportData() {
-            const entries = getEntries();
-            if (entries.length === 0) return alert('No data to export.');
-
-            // Populate PDF template
-            document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', month: 'long', day: 'numeric' 
-            });
-            document.getElementById('pdf-count').textContent = entries.length;
-
-            const tbody = document.getElementById('pdf-tbody');
-            tbody.innerHTML = entries.map(e => {
-                const formattedDate = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const formattedTime = new Date('1970-01-01T' + e.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                return `
-                    <tr>
-                        <td>${formattedDate}</td>
-                        <td>${formattedTime}</td>
-                        <td>${e.context}</td>
-                        <td class="level-cell">${e.level} ${e.unit}</td>
-                        <td>${e.notes || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            const element = document.getElementById('pdf-render-area');
-            
-            const opt = {
-                margin:       0,
-                filename:     `Mohammed_Ayub_Health_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            // Generate and download PDF
-            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
